@@ -60,8 +60,7 @@ main (int argc, char *argv[])
   mobilityEnb.SetPositionAllocator(positionAllocEnb);
   mobilityEnb.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobilityEnb.Install(enbNodes);
-  
-  NS_LOG_UNCOND ("boop");
+
   NS_LOG_UNCOND ("Position of base station: " << enbNodes.Get (0)->GetObject<MobilityModel> ()->GetPosition ());
 
   MobilityHelper mobilityUe;
