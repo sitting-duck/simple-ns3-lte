@@ -25,3 +25,5 @@ RUN python3 /bake/bake.py deploy
 #move our simulation(s) into scratch dir in ns3
 RUN mv /scratch/** /source/ns-3.34/scratch/
 
+WORKDIR /source/ns-3.34/
+./waf -d debug --enable-examples --enable-tests configure
