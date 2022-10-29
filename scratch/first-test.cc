@@ -21,6 +21,9 @@
 #include "ns3/applications-module.h"
 #include "ns3/netanim-module.h"
 
+//#include <cstdio>
+#include <string>
+
 // Default Network Topology
 //
 //       10.1.1.0
@@ -35,24 +38,26 @@ NS_LOG_COMPONENT_DEFINE ("FirstScriptExample");
 int
 main (int argc, char *argv[])
 {
-  std::string animFile = "scratch/animation.xml" ;  // Name of file for animation output
-
+  uint32_t nPackets = 1; // the numPackets that will be echoed
   CommandLine cmd (__FILE__);
+  cmd.AddValue("nPackets", "Number of packets to echo", nPackets);
   cmd.Parse (argc, argv);
-  
+
+  std::string animFile = std::string("scratch/animation-")+std::to_string(nPackets)+std::string("packets.xml");  // Name of file for animation output  
+  std::string traceFile = "scratch/trace.tr";
+
   Time::SetResolution (Time::NS);
-  LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
-  LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("UdpEchoClientApplication", LOG_ALL);
+  LogComponentEnable ("UdpEchoServerApplication", LOG_ALL);
 
   NodeContainer nodes;
   nodes.Create (2);
 
   PointToPointHelper pointToPoint;
-  pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+  pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("500Mbps"));
   pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
 
-  // A PointToPoint link is a type of NetDevice
-  NetDeviceContainer devices; // holds type PointToPointNetDevice
+  NetDeviceContainer devices;
   devices = pointToPoint.Install (nodes);
 
   InternetStackHelper stack;
@@ -61,17 +66,16 @@ main (int argc, char *argv[])
   Ipv4AddressHelper address;
   address.SetBase ("10.1.1.0", "255.255.255.0");
 
-  Ipv4InterfaceContainer interfaces = address.Assign (devices); // assign ip addresses to all nodes
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
 
-  // 9 is the port number the server will send packets on
-  UdpEchoServerHelper echoServer (9); // echoServer is an application that will create traffic
+  UdpEchoServerHelper echoServer (9);
 
   ApplicationContainer serverApps = echoServer.Install (nodes.Get (1));
   serverApps.Start (Seconds (1.0));
   serverApps.Stop (Seconds (10.0));
 
   UdpEchoClientHelper echoClient (interfaces.GetAddress (1), 9);
-  echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (nPackets));
   echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
   echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
 
@@ -79,10 +83,12 @@ main (int argc, char *argv[])
   clientApps.Start (Seconds (2.0));
   clientApps.Stop (Seconds (10.0));
 
-  // Animation interface updates must be done in a separate loop after node creation
-  // or we will get node does not exist errors
   AnimationInterface anim (animFile);
   anim.EnablePacketMetadata (); // Optional
+
+  AsciiTraceHelper ascii;
+  pointToPoint.EnableAsciiAll (ascii.CreateFileStream (traceFile));
+  pointToPoint.EnablePcapAll("scratch/myfirst");
 
   Simulator::Run ();
   Simulator::Destroy ();
